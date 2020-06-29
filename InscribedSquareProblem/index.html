@@ -59,6 +59,39 @@
 			}
 		};
 
+        let addLinePoints = (pts) => {
+            let pts2 = [];
+            let n = pts.length;
+            let total_dist = 0;
+            for (let i = 0; i < n-1; ++i) {
+                total_dist += dist(pts[i], pts[i+1]);
+            }
+            for (let i = 0; i < n-1; ++i) {
+                let A = pts[i];
+                let B = pts[i+1];
+                let d = dist(A, B);
+
+                if (d > 1) {
+                    pts2.push(A);
+
+                    let C = A;
+                    let v = vec(A, B);
+                    let f = 1000*d/total_dist;
+                    v[0] /= f;
+                    v[1] /= f;
+
+                    C = vecAdd(C, v);
+
+                    while (dist(A, C) < d) {
+                        pts2.push(C);
+                        C = vecAdd(C, v);
+                    }
+                }
+            }  
+            return pts2;
+            console.log(pts2.length);    
+        };
+
 		let vecDiff = (U, V) => {
 			return [U[0]-V[0], U[1]-V[1]];
 		};
@@ -160,6 +193,7 @@
 
 		canvas.addEventListener("mouseup", e => {
             points.push(points[0]);
+            points = addLinePoints(points);
 			clear();
 			drawCurve("rgba(0,0,255,0.5)");
 			drawing = false;
@@ -188,20 +222,20 @@
 					let B = [e.clientX, e.clientY];
 					let d = dist(A, B);
 
-					if (d > 1) {
-						let C = A;
-						let v = vec(A, B);
-						let f = 8*Math.log(d);
-						v[0] /= f;
-						v[1] /= f;
+					// if (d > 1) {
+					// 	let C = A;
+					// 	let v = vec(A, B);
+					// 	let f = 8*Math.log(d);
+					// 	v[0] /= f;
+					// 	v[1] /= f;
 
-						C = vecAdd(C, v);
+					// 	C = vecAdd(C, v);
 
-						while (dist(A, C) < d) {
-							points.push(C);
-							C = vecAdd(C, v);
-						}
-					}
+					// 	while (dist(A, C) < d) {
+					// 		points.push(C);
+					// 		C = vecAdd(C, v);
+					// 	}
+					// }
 
 					points.push(B);
 				}
