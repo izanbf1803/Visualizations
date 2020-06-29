@@ -1,0 +1,214 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+
+	<title>Inscribed square problem</title>
+
+	<style>
+		html, body {
+		    overflow: hidden;
+		    margin: 0 !important;
+		    padding: 0 !important;
+		}
+	</style>
+</head>
+
+<body>
+	<canvas id="canvas"></canvas>
+	<script src="https://cdn.jsdelivr.net/npm/roughjs@4.3.1/bundled/rough.min.js"></script>
+	<script>
+		const canvas = document.getElementById('canvas');
+		const ctx = canvas.getContext('2d');
+		canvas.width  = window.innerWidth;
+		canvas.height = window.innerHeight;
+
+		const rc = rough.canvas(canvas);
+
+		const eps = 1e-5;
+
+		let points = [];
+		let drawing = false;
+		let finished = false;
+
+		let clear = () => {
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+		};
+
+		let pointToStr = (pt) => {
+			return pt[0].toString() + "," + pt[1].toString();
+		};
+
+		let pointsToPath = (pts) => {
+			let path = "M " + pointToStr(pts[0]);
+			for (let i = 1; i < pts.length; ++i) {
+				path += " L " + pointToStr(pts[i]);
+			}
+			return path;
+		};
+
+		let drawCurve = (fill) => {
+			if (points.length >= 2) {
+				let path = pointsToPath(points);
+				let params = { simplification: 1, roughness: 0, hachureGap: 6, hachureAngle: 60 };
+				if (fill != null) {
+					params.fill = fill;
+				}
+				rc.path(path, params);
+			}
+		};
+
+		let vecDiff = (U, V) => {
+			return [U[0]-V[0], U[1]-V[1]];
+		};
+
+		let vecAdd = (U, V) => {
+			return [U[0]+V[0], U[1]+V[1]];
+		};
+
+		let vecDot = (U, V) => {
+			return U[0]*V[0] + U[1]*V[1];
+		};
+
+		let vecNorm = (V) => {
+			return vecDot(V, V);
+		};
+
+		let dist = (A, B) => {
+			return Math.sqrt(vecNorm(vecDiff(A, B)));
+		};
+
+		let vecEq = (U, V) => {
+			return dist(U, V) < eps;
+		};
+
+		let pointEq = (A, B) => {
+			return dist(A, B) < 3;
+		};
+
+		let vec = (A, B) => {
+			return vecDiff(B, A);
+		};
+
+		let rotate = (V, ang) => {
+			let x = V[0];
+			let y = V[1];
+			let sin = Math.sin(ang);
+			let cos = Math.cos(ang);
+			let rx = x * cos - y * sin;
+			let ry = x * sin + y * cos;
+			return [rx, ry];
+		};
+
+		let square = (A, B) => {
+			let v = vec(A, B);
+			v = rotate(v, 3*Math.PI/2);
+			let C = vecAdd(B, v);
+			v = rotate(v, 3*Math.PI/2);
+			let D = vecAdd(C, v);
+			return [A, B, C, D];
+		}
+
+		let solveProblem = (pts) => {
+			let n = pts.length;
+			for (let i = 0; i < n; ++i) {
+				for (let j = 0; j < n; ++j) {
+					let A = pts[i];
+					let B = pts[j];
+					let d = dist(A, B);
+					if (d < 10) continue;
+					
+					let sq = square(A, B);
+					let C = sq[2];
+					let D = sq[3];
+
+					let Cfound = false;
+					let Dfound = false;
+
+					for (let k = 0; k < n; ++k) {
+						let P = pts[k];
+						if (pointEq(P, C)) {
+							Cfound = true;
+						}
+						if (pointEq(P, D)) {
+							Dfound = true;
+						}
+					}
+
+					if (Cfound && Dfound) {
+						return sq;
+					}
+				}
+			}
+			return null;
+		};
+
+		let reset = () => {
+			clear();
+			points = [];
+			drawing = false;
+			finished = false;
+		};
+
+		canvas.addEventListener("mousedown", e => {
+			if (finished) {
+				reset();
+			}
+			drawing = true;
+		});
+
+		canvas.addEventListener("mouseup", e => {
+            points.push(points[0]);
+			clear();
+			drawCurve("rgba(0,0,255,0.5)");
+			drawing = false;
+			console.log(points.length);
+			let sq = solveProblem(points);
+			if (sq == null) {
+				alert("Vaya, el algoritmo ha fallado, prueba de nuevo");
+				reset();
+			}
+			else {
+				for (let i = 0; i < 4; ++i) {
+					rc.circle(sq[i][0], sq[i][1], 10, { fill: "red", roughness: 0, fillStyle: "solid" });
+				}
+				rc.polygon(sq, { fill: "rgba(255,0,200,0.2)", roughness: 0, fillStyle: "solid" });
+				finished = true;
+			}
+		});
+
+		canvas.addEventListener("mousemove", e => {
+			if (drawing) {
+				if (points.length == 0) {
+					points.push([e.clientX, e.clientY]);
+				}
+				else {
+					let A = points[points.length-1];
+					let B = [e.clientX, e.clientY];
+					let d = dist(A, B);
+
+					if (d > 1) {
+						let C = A;
+						let v = vec(A, B);
+						let f = 8*Math.log(d);
+						v[0] /= f;
+						v[1] /= f;
+
+						C = vecAdd(C, v);
+
+						while (dist(A, C) < d) {
+							points.push(C);
+							C = vecAdd(C, v);
+						}
+					}
+
+					points.push(B);
+				}
+				clear();
+				drawCurve(null);
+			}
+		});
+	</script>
+</body>
+</html>
