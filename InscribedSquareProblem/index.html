@@ -215,7 +215,6 @@
 		};
 
 		let onMouseMove = (x, y) => {
-			rc.circle(x, y, 10, { fill: "red", roughness: 0, fillStyle: "solid" });
 			if (drawing) {
 				points.push([x, y]);
 				clear();
